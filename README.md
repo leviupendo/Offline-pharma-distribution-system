@@ -1,6 +1,6 @@
 # Offline Pharmaceutical Distribution System
-
-A local-first pharmaceutical production, packaging, warehouse and distribution platform designed for controlled environments where operational data must remain on site.
+A local-first "pharmaceutical" production, packaging, warehouse and distribution platform designed for controlled environments where operational data must remain on site.
+Pharmaceutical is in qoutes as we arent talking about pharmarcies here!Depends on the drugs we are talking about!ha!
 
 ## Scope
 
