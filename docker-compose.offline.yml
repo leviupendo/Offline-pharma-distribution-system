@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: pharma
+      POSTGRES_USER: pharma_app
+      POSTGRES_PASSWORD: CHANGE_THIS_IN_PRIVATE_ENV
+    volumes:
+      - pharma_db:/var/lib/postgresql/data
+    networks:
+      - pharma_net
+    # No host port published: database remains inside the private network.
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql+psycopg2://pharma_app:CHANGE_THIS_IN_PRIVATE_ENV@db:5432/pharma
+      JWT_SECRET: CHANGE_THIS_IN_PRIVATE_ENV
+    ports:
+      - "127.0.0.1:8000:8000"
+    networks:
+      - pharma_net
+
+networks:
+  pharma_net:
+    internal: true
+
+volumes:
+  pharma_db:

@@ -1,0 +1,25 @@
+fastapi==0.116.1
+uvicorn[standard]==0.35.0
+sqlalchemy==2.0.43
+pydantic>=2.12.5
+pydantic-settings==2.10.1
+python-multipart==0.0.20
+python-jose[cryptography]==3.5.0
+passlib[argon2]==1.7.4
+argon2-cffi==25.1.0
+cryptography==45.0.6
+# PyJWT removed: the codebase imports `jose` (python-jose), not PyJWT.
+# Keeping both installed is unnecessary and invites confusion about
+# which JWT implementation is actually in use.
+jinja2==3.1.6
+# psycopg[binary]: pinned as a minimum, not an exact version. psycopg
+# only ships prebuilt wheels for a given Python version as of a certain
+# release (e.g. 3.2.9 has no wheel for Python 3.14), so an exact pin
+# breaks pip installs on newer Python without warning — it doesn't
+# degrade gracefully, it aborts the *entire* requirements.txt install,
+# which took sqlalchemy and everything else down with it on a fresh
+# Windows/Python 3.14 setup. A floor instead of a pin avoids that class
+# of failure while still keeping a known-working minimum.
+psycopg[binary]>=3.2.9
+pytest==8.4.1
+httpx==0.28.1

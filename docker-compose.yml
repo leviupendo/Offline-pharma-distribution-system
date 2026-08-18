@@ -1,0 +1,29 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: pharma
+      POSTGRES_USER: pharma_app
+      POSTGRES_PASSWORD: change-this-local-password
+    volumes:
+      - pharma_db:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  app:
+    build: .
+    environment:
+      # Every value below is a placeholder. The app will refuse to
+      # start if APP_ENV is set to anything other than "development"
+      # while JWT_SECRET or BACKUP_KEY are still at their defaults —
+      # see docs/DEPLOYMENT.md before deploying this for real.
+      DATABASE_URL: postgresql+psycopg://pharma_app:change-this-local-password@db:5432/pharma
+      JWT_SECRET: change-this-local-jwt-secret
+      BACKUP_KEY: change-this-local-backup-key
+    depends_on:
+      - db
+    ports:
+      - "127.0.0.1:8000:8000"
+    restart: unless-stopped
+
+volumes:
+  pharma_db:

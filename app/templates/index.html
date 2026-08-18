@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Offline Pharma Distribution</title>
+<style>
+*{box-sizing:border-box}body{font-family:Inter,system-ui,sans-serif;margin:0;background:#f3f6f9;color:#18222d}
+header{background:#102a43;color:#fff;padding:18px 28px;display:flex;justify-content:space-between;align-items:center}
+main{max-width:1250px;margin:auto;padding:22px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+.card{background:#fff;border-radius:12px;padding:18px;box-shadow:0 2px 9px #0001;margin-bottom:16px}
+.num{font-size:28px;font-weight:800;margin-top:8px}.muted{color:#607080}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+button{border:0;border-radius:8px;padding:10px 14px;background:#102a43;color:#fff;cursor:pointer}
+button.secondary{background:#607080}input,select,textarea{padding:10px;border:1px solid #ccd6df;border-radius:8px;width:100%;margin:5px 0 10px}
+form{max-width:620px}table{width:100%;border-collapse:collapse}th,td{padding:9px;border-bottom:1px solid #e4e8ec;text-align:left}
+.badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#e8eef5;font-size:12px}
+.hidden{display:none}.error{color:#b42318}.ok{color:#067647}
+</style>
+</head>
+<body>
+<header><div><strong>Offline Pharmaceutical Distribution System</strong><div class="muted" style="color:#c9d6e2">Local privacy-first operations console</div></div><button class="secondary" onclick="logout()">Sign out</button></header>
+<main>
+<section id="login" class="card">
+<h2>Local Authentication</h2>
+<form onsubmit="event.preventDefault();loginUser()">
+<label>Username</label><input id="username" value="admin" required>
+<label>Password</label><input id="password" type="password" required>
+<button>Sign in</button>
+<p id="loginStatus"></p>
+</form>
+</section>
+
+<section id="app" class="hidden">
+<div class="tabs">
+<button onclick="show('dashboard')">Dashboard</button><button onclick="show('batches')">Batches / QC</button>
+<button onclick="show('inventory')">Inventory</button><button onclick="show('orders')">Orders</button>
+<button onclick="show('customers')">Customers</button><button onclick="show('audit')">Audit</button>
+</div>
+
+<div id="dashboard" class="view">
+<div class="grid">
+<div class="card">Batches<div class="num" id="m_batches">-</div></div>
+<div class="card">Released<div class="num" id="m_released">-</div></div>
+<div class="card">Quarantine<div class="num" id="m_quarantine">-</div></div>
+<div class="card">Rejected<div class="num" id="m_rejected">-</div></div>
+<div class="card">Packet lots<div class="num" id="m_lots">-</div></div>
+<div class="card">Inventory units<div class="num" id="m_inventory">-</div></div>
+<div class="card">Open orders<div class="num" id="m_orders">-</div></div>
+<div class="card">Shipped<div class="num" id="m_shipped">-</div></div>
+</div>
+<div class="card"><h2>System posture</h2><p>Operational data is designed for local processing. No cloud API is required by this application.</p><p class="muted">Production deployment still requires OS hardening, LAN TLS, full-disk encryption, controlled backups, validated procedures and regulatory review.</p></div>
+</div>
+
+<div id="batches" class="view hidden">
+<div class="card"><h2>Create Batch</h2><form onsubmit="createBatch(event)">
+<input id="b_id" placeholder="Batch ID" required><input id="b_product" type="number" placeholder="Product ID" required>
+<label>Production date</label><input id="b_prod" type="datetime-local" required>
+<label>Expiry date</label><input id="b_exp" type="datetime-local" required>
+<input id="b_tons" type="number" step="0.001" placeholder="Bulk quantity (tons)" required>
+<button>Create quarantine batch</button></form></div>
+<div class="card"><h2>Batch register</h2><button onclick="loadBatches()">Refresh</button><div id="batchTable"></div></div>
+</div>
+
+<div id="inventory" class="view hidden">
+<div class="card"><h2>Package Released Batch</h2><form onsubmit="packageBatch(event)">
+<input id="p_lot" placeholder="Packet lot ID" required><input id="p_batch" type="number" placeholder="Batch database ID" required>
+<input id="p_qty" type="number" placeholder="Produced packets" required><input id="p_weight" type="number" step="0.001" placeholder="Fill weight (g)" required>
+<input id="p_reject" type="number" value="0" placeholder="Rejected packets"><input id="p_date" type="datetime-local" required>
+<input id="p_loc" value="FINISHED_GOODS" placeholder="Location"><button>Record packaging</button></form></div>
+<div class="card"><h2>Inventory</h2><button onclick="loadInventory()">Refresh</button><div id="inventoryTable"></div></div>
+</div>
+
+<div id="orders" class="view hidden">
+<div class="card"><h2>Create Order</h2><form onsubmit="createOrder(event)">
+<input id="o_id" placeholder="Order ID" required><input id="o_customer" placeholder="Customer reference" required>
+<input id="o_qty" type="number" min="1" placeholder="Quantity" required><button>Create order</button></form></div>
+<div class="card"><h2>Orders</h2><button onclick="loadOrders()">Refresh</button><div id="orderTable"></div></div>
+</div>
+
+<div id="customers" class="view hidden">
+<div class="card"><h2>Create Customer Reference</h2><form onsubmit="createCustomer(event)">
+<input id="c_ref" placeholder="Internal customer reference" required><input id="c_name" placeholder="Display name" required><button>Create</button></form></div>
+<div class="card"><h2>Customers</h2><button onclick="loadCustomers()">Refresh</button><div id="customerTable"></div></div>
+</div>
+
+<div id="audit" class="view hidden">
+<div class="card"><h2>Audit Trail</h2><button onclick="loadAudit()">Refresh</button><div id="auditTable"></div></div>
+</div>
+</section>
+</main>
+<script>
+let token=localStorage.getItem("token");
+const $=id=>document.getElementById(id);
+async function api(path,opts={}){opts.headers={...(opts.headers||{}),Authorization:"Bearer "+token};if(opts.body&&!opts.headers["Content-Type"])opts.headers["Content-Type"]="application/json";const r=await fetch("/api"+path,opts);const d=await r.json().catch(()=>({}));if(r.status===401||r.status===423){logout()}if(!r.ok)throw new Error(d.detail||"Request failed");return d}
+async function loginUser(){try{const r=await fetch("/api/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:$("username").value,password:$("password").value})});const d=await r.json();if(!r.ok)throw Error(d.detail);token=d.access_token;localStorage.setItem("token",token);start()}catch(e){$("loginStatus").className="error";$("loginStatus").textContent=e.message}}
+function logout(){localStorage.removeItem("token");token=null;$("app").classList.add("hidden");$("login").classList.remove("hidden")}
+function start(){if(!token)return;$("login").classList.add("hidden");$("app").classList.remove("hidden");dashboard()}
+function show(id){document.querySelectorAll(".view").forEach(x=>x.classList.add("hidden"));$(id).classList.remove("hidden");({dashboard, batches:loadBatches,inventory:loadInventory,orders:loadOrders,customers:loadCustomers,audit:loadAudit}[id]||dashboard)()}
+async function dashboard(){try{let d=await api("/reports/dashboard");$("m_batches").textContent=d.batches;$("m_released").textContent=d.released_batches;$("m_quarantine").textContent=d.quarantine_batches;$("m_rejected").textContent=d.rejected_batches;$("m_lots").textContent=d.packet_lots;$("m_inventory").textContent=d.inventory_units;$("m_orders").textContent=d.open_orders;$("m_shipped").textContent=d.shipped_orders}catch(e){}}
+async function createBatch(e){e.preventDefault();try{await api("/batches",{method:"POST",body:JSON.stringify({batch_id:$("b_id").value,product_id:+$("b_product").value,production_date:new Date($("b_prod").value).toISOString(),expiry_date:new Date($("b_exp").value).toISOString(),bulk_quantity_tons:+$("b_tons").value})});alert("Batch created in quarantine.");loadBatches();dashboard()}catch(e){alert(e.message)}}
+async function loadBatches(){try{let d=await api("/batches");$("batchTable").innerHTML="<table><tr><th>ID</th><th>Product</th><th>Tons</th><th>Status</th><th>Expiry</th></tr>"+d.map(b=>`<tr><td>${b.batch_id}</td><td>${b.product_id}</td><td>${b.bulk_quantity_tons}</td><td><span class=badge>${b.status}</span></td><td>${b.expiry_date}</td></tr>`).join("")+"</table>"}catch(e){}}
+async function packageBatch(e){e.preventDefault();try{await api("/inventory/packaging?"+new URLSearchParams({packet_lot_id:$("p_lot").value,batch_id:$("p_batch").value,number_of_packets:$("p_qty").value,fill_weight_grams:$("p_weight").value,rejected_packets:$("p_reject").value,packaging_date:new Date($("p_date").value).toISOString(),location_id:$("p_loc").value}),{method:"POST"});alert("Packaging recorded.");loadInventory();dashboard()}catch(e){alert(e.message)}}
+async function loadInventory(){try{let d=await api("/inventory");$("inventoryTable").innerHTML="<table><tr><th>Lot DB ID</th><th>Location</th><th>Quantity</th><th>Status</th></tr>"+d.map(x=>`<tr><td>${x.packet_lot_id}</td><td>${x.location_id}</td><td>${x.quantity_on_hand}</td><td>${x.status}</td></tr>`).join("")+"</table>"}catch(e){}}
+async function createCustomer(e){e.preventDefault();try{await api("/customers",{method:"POST",body:JSON.stringify({customer_ref:$("c_ref").value,display_name:$("c_name").value})});alert("Customer created.");loadCustomers()}catch(e){alert(e.message)}}
+async function loadCustomers(){try{let d=await api("/customers");$("customerTable").innerHTML="<table><tr><th>Reference</th><th>Display name</th></tr>"+d.map(x=>`<tr><td>${x.customer_ref}</td><td>${x.display_name}</td></tr>`).join("")+"</table>"}catch(e){}}
+async function createOrder(e){e.preventDefault();try{await api("/orders",{method:"POST",body:JSON.stringify({order_id:$("o_id").value,customer_ref:$("o_customer").value,lines:[{requested_quantity:+$("o_qty").value}]})});alert("Order created.");loadOrders();dashboard()}catch(e){alert(e.message)}}
+async function loadOrders(){try{let d=await api("/orders");$("orderTable").innerHTML="<table><tr><th>Order</th><th>Customer</th><th>Status</th><th>Action</th></tr>"+d.map(x=>`<tr><td>${x.order_id}</td><td>${x.customer_id}</td><td>${x.status}</td><td>${x.status==="DRAFT"?`<button onclick="allocate(${x.id})">FEFO Allocate</button>`:""}</td></tr>`).join("")+"</table>"}catch(e){}}
+async function allocate(id){try{await api(`/orders/${id}/allocate`,{method:"POST"});alert("Allocated using FEFO.");loadOrders();loadInventory();dashboard()}catch(e){alert(e.message)}}
+async function loadAudit(){try{let d=await api("/audit");$("auditTable").innerHTML="<table><tr><th>Time</th><th>Action</th><th>Entity</th><th>Hash</th></tr>"+d.map(x=>`<tr><td>${x.timestamp}</td><td>${x.action}</td><td>${x.entity_type}:${x.entity_id}</td><td>${x.entry_hash.slice(0,16)}…</td></tr>`).join("")+"</table>"}catch(e){}}
+start();
+</script>
+</body>
+</html>
